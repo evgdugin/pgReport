@@ -1,0 +1,4 @@
+CREATE SCHEMA public;
+
+GRANT ALL ON SCHEMA public TO PUBLIC;
+GRANT ALL ON SCHEMA public TO user1c;

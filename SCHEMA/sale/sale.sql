@@ -1,0 +1,5 @@
+CREATE SCHEMA sale;
+
+ALTER SCHEMA sale OWNER TO postgres;
+
+GRANT ALL ON SCHEMA sale TO user1c;
