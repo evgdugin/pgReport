@@ -141,25 +141,30 @@ CREATE OR REPLACE FUNCTION warehouse.wb_goods_income_load(_data text) RETURNS vo
 		       	                 END ,
 		       	office_id = EXCLUDED.office_id;
 		
-		WITH cte AS(
-			SELECT dt.gi_id,
-			       bc.barcode_id,
-			       dt.quantity,
-			       dt.price
-			FROM   temp_tab AS dt
-			       INNER JOIN products.barcodes bc
-			            ON  bc.barcode = dt.barcode
-		) 
-		UPDATE warehouse.wb_goods_income_detail
-		SET
-		
-		quantity = v.quantity,
-		price = 
-		CASE 
-			WHEN COALESCE (v.price, 0) = 0 THEN gid.price
-			ELSE v.price
-		END FROM cte AS v
-		    WHERE gid.gi_id = v.gi_id AND gid.barcode_id = v.barcode_id;
+		WITH cte AS(SELECT dt.gi_id,
+				       sa.sa_id,
+				       ts.ts_id,
+				       bc.barcode_id,
+				       dt.nm_id,
+				       dt.quantity,
+				       dt.price
+				FROM   temp_tab AS dt
+				       INNER JOIN products.barcodes bc
+				            ON  bc.barcode = dt.barcode
+				       INNER JOIN products.supplier_article sa
+				            ON  sa.sa_name = dt.sa_name
+				       INNER JOIN products.tech_size ts
+				            ON  ts.ts_name = dt.ts_name
+			)		
+		UPDATE warehouse.wb_goods_income_detail gid
+		SET	quantity     = v.quantity,
+			price        = CASE 
+			        	WHEN COALESCE (v.price, 0) = 0 THEN gid.price
+			        	ELSE v.price
+			        END 
+			FROM  cte AS v
+			WHERE  gid.gi_id = v.gi_id AND gid.barcode_id = v.barcode_id;
+
 		
 		INSERT INTO warehouse.wb_goods_income_detail AS gid
 		  (
@@ -170,19 +175,19 @@ CREATE OR REPLACE FUNCTION warehouse.wb_goods_income_load(_data text) RETURNS vo
 		  )
 		SELECT dt.gi_id,
 		       bc.barcode_id,
-		       dt.quantity,
-		       dt.price
+		       SUM(dt.quantity) quantity,
+		       MAX(dt.price) price
 		FROM   temp_tab AS dt
 		       INNER JOIN products.barcodes bc
 		            ON  bc.barcode = dt.barcode
 		WHERE  NOT EXISTS (
 		       	SELECT 1
 		       	FROM   warehouse.wb_goods_income_detail AS wgid
-		       	WHERE  wgid.gi_id = dt.gi_id
-		       	       AND wgid.sa_id = sa.sa_id
-		       	       AND wgid.ts_id = ts.ts_id
+		       	WHERE  wgid.gi_id = dt.gi_id		       	      
 		       	       AND wgid.barcode_id = bc.barcode_id
-		       );
+		)
+		GROUP BY dt.gi_id,
+		       bc.barcode_id;
 	END;
 $$;
 

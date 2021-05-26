@@ -8,5 +8,7 @@ CREATE SEQUENCE products.barcodes_barcode_id_seq
 
 ALTER SEQUENCE products.barcodes_barcode_id_seq OWNER TO postgres;
 
+GRANT ALL ON SEQUENCE products.barcodes_barcode_id_seq TO user1c;
+
 ALTER SEQUENCE products.barcodes_barcode_id_seq
 	OWNED BY products.barcodes.barcode_id;

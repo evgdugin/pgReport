@@ -8,5 +8,7 @@ CREATE SEQUENCE warehouse.wb_goods_income_detail_gid_id_seq
 
 ALTER SEQUENCE warehouse.wb_goods_income_detail_gid_id_seq OWNER TO postgres;
 
+GRANT ALL ON SEQUENCE warehouse.wb_goods_income_detail_gid_id_seq TO user1c;
+
 ALTER SEQUENCE warehouse.wb_goods_income_detail_gid_id_seq
 	OWNED BY warehouse.wb_goods_income_detail.gid_id;

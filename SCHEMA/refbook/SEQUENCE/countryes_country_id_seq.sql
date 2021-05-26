@@ -8,5 +8,7 @@ CREATE SEQUENCE refbook.countryes_country_id_seq
 
 ALTER SEQUENCE refbook.countryes_country_id_seq OWNER TO postgres;
 
+GRANT ALL ON SEQUENCE refbook.countryes_country_id_seq TO user1c;
+
 ALTER SEQUENCE refbook.countryes_country_id_seq
 	OWNED BY refbook.countryes.country_id;

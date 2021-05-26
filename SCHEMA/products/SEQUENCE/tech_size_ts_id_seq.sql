@@ -8,5 +8,7 @@ CREATE SEQUENCE products.tech_size_ts_id_seq
 
 ALTER SEQUENCE products.tech_size_ts_id_seq OWNER TO postgres;
 
+GRANT ALL ON SEQUENCE products.tech_size_ts_id_seq TO user1c;
+
 ALTER SEQUENCE products.tech_size_ts_id_seq
 	OWNED BY products.tech_size.ts_id;

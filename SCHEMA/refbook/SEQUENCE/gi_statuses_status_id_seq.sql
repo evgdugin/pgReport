@@ -8,5 +8,7 @@ CREATE SEQUENCE refbook.gi_statuses_status_id_seq
 
 ALTER SEQUENCE refbook.gi_statuses_status_id_seq OWNER TO postgres;
 
+GRANT ALL ON SEQUENCE refbook.gi_statuses_status_id_seq TO user1c;
+
 ALTER SEQUENCE refbook.gi_statuses_status_id_seq
 	OWNED BY refbook.gi_statuses.status_id;

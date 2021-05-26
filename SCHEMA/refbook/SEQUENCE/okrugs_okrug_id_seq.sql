@@ -8,5 +8,7 @@ CREATE SEQUENCE refbook.okrugs_okrug_id_seq
 
 ALTER SEQUENCE refbook.okrugs_okrug_id_seq OWNER TO postgres;
 
+GRANT ALL ON SEQUENCE refbook.okrugs_okrug_id_seq TO user1c;
+
 ALTER SEQUENCE refbook.okrugs_okrug_id_seq
 	OWNED BY refbook.okrugs.okrug_id;
