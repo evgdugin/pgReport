@@ -1,0 +1,31 @@
+CREATE TYPE sale.day_report_detail_type AS (
+	od_id bigint,
+	sale_type character(1),
+	sale_id bigint,
+	sale_dt date,
+	is_storno bit(1),
+	barcode character varying(30),
+	brand_name character varying(50),
+	country_name character varying(50),
+	discount_percent smallint,
+	finished_price numeric(9,2),
+	forpay numeric(9,2),
+	is_realization bit(1),
+	is_supply bit(1),
+	last_change_dt timestamp with time zone,
+	nm_id integer,
+	okrug_name character varying(50),
+	gi_id integer,
+	price_with_disc numeric(9,2),
+	promo_code_discount smallint,
+	quantity smallint,
+	region_name character varying(50),
+	spp smallint,
+	subject_name character varying(50),
+	sa_name character varying(36),
+	ts_name character varying(15),
+	total_price numeric(9,2),
+	office_name character varying(50)
+);
+
+ALTER TYPE sale.day_report_detail_type OWNER TO postgres;

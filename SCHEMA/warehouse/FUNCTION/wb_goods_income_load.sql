@@ -47,6 +47,22 @@ CREATE OR REPLACE FUNCTION warehouse.wb_goods_income_load(_data text) RETURNS vo
 		       	WHERE  dc.ts_name = dt.ts_name
 		       );
 		
+		UPDATE
+			products.barcodes b
+		SET
+			nm_id          = v.nm_id			
+			FROM (
+				SELECT dt.barcode,
+				       MAX (dt.nm_id)        nm_id
+				FROM   temp_tab dt
+				GROUP BY
+		       			dt.barcode
+			) v
+		WHERE
+			b.barcode = v.barcode
+			AND b.nm_id = 0
+			AND v.nm_id != 0;
+		
 		INSERT INTO products.barcodes
 		  (
 		    barcode,
