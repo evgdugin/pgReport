@@ -3,7 +3,8 @@ CREATE TABLE warehouse.wb_goods_income_detail (
 	gi_id integer NOT NULL,
 	barcode_id integer NOT NULL,
 	quantity smallint NOT NULL,
-	price numeric(15,2) NOT NULL
+	price numeric(15,2) NOT NULL,
+	sats_id integer
 );
 
 ALTER TABLE warehouse.wb_goods_income_detail OWNER TO postgres;
@@ -28,3 +29,8 @@ ALTER TABLE warehouse.wb_goods_income_detail
 
 ALTER TABLE warehouse.wb_goods_income_detail
 	ADD CONSTRAINT pk_wb_goods_income_detail PRIMARY KEY (gid_id);
+
+--------------------------------------------------------------------------------
+
+ALTER TABLE warehouse.wb_goods_income_detail
+	ADD CONSTRAINT fk_wb_goods_income_detail_detail_sats_id FOREIGN KEY (sats_id) REFERENCES products.sats(sats_id);

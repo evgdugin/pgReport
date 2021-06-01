@@ -21,12 +21,30 @@ CREATE OR REPLACE FUNCTION warehouse.wb_goods_income_load(_data text) RETURNS vo
 		       	CAST (_data AS json)
 		       )d;
 		
+		UPDATE
+			products.supplier_article sa
+		SET
+			nm_id          = v.nm_id			
+			FROM (
+				SELECT dt.sa_name,
+				       MAX (dt.nm_id)        nm_id
+				FROM   temp_tab dt
+				GROUP BY
+		       			dt.sa_name
+			) v
+		WHERE
+			sa.sa_name = v.sa_name
+			AND COALESCE(sa.nm_id, 0) = 0
+			AND COALESCE(v.nm_id, 0) != 0;
+
 		INSERT INTO products.supplier_article
 		  (
-		    sa_name
+		    sa_name,
+		    nm_id
 		  )
-		SELECT dt.sa_name
-		FROM   temp_tab dt
+		SELECT dt.sa_name,
+		       MAX (dt.nm_id)     nm_id
+		FROM   temp_tab           dt
 		WHERE  NOT EXISTS (
 		       	SELECT 1
 		       	FROM   products.supplier_article dc
@@ -86,6 +104,27 @@ CREATE OR REPLACE FUNCTION warehouse.wb_goods_income_load(_data text) RETURNS vo
 		       )
 		GROUP BY
 		       dt.barcode;
+		       
+		INSERT INTO products.sats
+		  (
+		    sa_id,
+		    ts_id
+		  )
+		SELECT sa.sa_id,
+		       ts.ts_id
+		FROM   temp_tab dt
+		       INNER JOIN products.supplier_article AS sa
+		            ON  sa.sa_name = dt.sa_name
+		       INNER JOIN products.tech_size AS ts
+		            ON  ts.ts_name = dt.ts_name
+		WHERE  NOT EXISTS (
+		       	SELECT 1
+		       	FROM   products.sats dc
+		       	WHERE  dc.sa_id = sa.sa_id AND dc.ts_id = ts.ts_id
+		       )
+		GROUP BY
+		       sa.sa_id,
+		       ts.ts_id;
 		
 		INSERT INTO refbook.offices
 		  (
@@ -187,15 +226,23 @@ CREATE OR REPLACE FUNCTION warehouse.wb_goods_income_load(_data text) RETURNS vo
 		    gi_id,
 		    barcode_id,
 		    quantity,
-		    price
+		    price,
+		    sats_id
 		  )
 		SELECT dt.gi_id,
 		       bc.barcode_id,
 		       SUM(dt.quantity) quantity,
-		       MAX(dt.price) price
+		       MAX(dt.price) price,
+		       MAX(s.sats_id)
 		FROM   temp_tab AS dt
 		       INNER JOIN products.barcodes bc
 		            ON  bc.barcode = dt.barcode
+				INNER JOIN products.supplier_article AS sa
+		       		ON sa.sa_name = dt.sa_name
+		       INNER JOIN products.tech_size AS ts
+		       		ON ts.ts_name = dt.ts_name
+		       INNER JOIN products.sats AS s
+		       		ON s.sa_id = sa.sa_id AND s.ts_id = ts.ts_id
 		WHERE  NOT EXISTS (
 		       	SELECT 1
 		       	FROM   warehouse.wb_goods_income_detail AS wgid

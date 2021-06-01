@@ -22,12 +22,30 @@ CREATE OR REPLACE FUNCTION warehouse.wb_stock_load(_data text, _period_dt date) 
 		       d.days_on_site
 		FROM   json_populate_recordset (NULL::warehouse.wb_stock_type, CAST (_data AS json))d;
 		
+		UPDATE
+			products.supplier_article sa
+		SET
+			nm_id          = v.nm_id			
+			FROM (
+				SELECT dt.sa_name,
+				       MAX (dt.nm_id)        nm_id
+				FROM   temp_tab dt
+				GROUP BY
+		       			dt.sa_name
+			) v
+		WHERE
+			sa.sa_name = v.sa_name
+			AND COALESCE(sa.nm_id, 0) = 0
+			AND COALESCE(v.nm_id, 0) != 0;
+		
 		INSERT INTO products.supplier_article
 		  (
-		    sa_name
+		    sa_name,
+		    nm_id
 		  )
-		SELECT dt.sa_name
-		FROM   temp_tab dt
+		SELECT dt.sa_name,
+		       MAX (dt.nm_id)     nm_id
+		FROM   temp_tab           dt
 		WHERE  NOT EXISTS (
 		       	SELECT 1
 		       	FROM   products.supplier_article dc
@@ -87,6 +105,27 @@ CREATE OR REPLACE FUNCTION warehouse.wb_stock_load(_data text, _period_dt date) 
 		       )
 		GROUP BY
 		       dt.barcode;
+		       
+		INSERT INTO products.sats
+		  (
+		    sa_id,
+		    ts_id
+		  )
+		SELECT sa.sa_id,
+		       ts.ts_id
+		FROM   temp_tab dt
+		       INNER JOIN products.supplier_article AS sa
+		            ON  sa.sa_name = dt.sa_name
+		       INNER JOIN products.tech_size AS ts
+		            ON  ts.ts_name = dt.ts_name
+		WHERE  NOT EXISTS (
+		       	SELECT 1
+		       	FROM   products.sats dc
+		       	WHERE  dc.sa_id = sa.sa_id AND dc.ts_id = ts.ts_id
+		       )
+		GROUP BY
+		       sa.sa_id,
+		       ts.ts_id;
 		
 		INSERT INTO products.subjects
 		  (
@@ -135,6 +174,30 @@ CREATE OR REPLACE FUNCTION warehouse.wb_stock_load(_data text, _period_dt date) 
 		       )
 		GROUP BY
 		       b.barcode_id; 
+		       
+		INSERT INTO products.supplier_article_info
+		  (
+		    sa_id,
+		    brand_id,
+		    subject_id
+		  )
+		SELECT sa.sa_id,
+		       MAX (br.brand_id)       brand_id,
+		       MAX (s.subject_id)      subject_id
+		FROM   temp_tab dt
+		       INNER JOIN products.supplier_article AS sa
+		            ON  sa.sa_name = dt.sa_name
+		       INNER JOIN products.brands AS br
+		            ON  br.brand_name = dt.brand_name
+		       INNER JOIN products.subjects AS s
+		            ON  s.subject_name = dt.subject_name
+		WHERE  NOT EXISTS (
+		       	SELECT 1
+		       	FROM   products.supplier_article_info AS sai
+		       	WHERE  sai.sa_id = sa.sa_id
+		       )
+		GROUP BY
+		       sa.sa_id;
 		
 		INSERT INTO refbook.offices
 		  (
@@ -174,7 +237,8 @@ CREATE OR REPLACE FUNCTION warehouse.wb_stock_load(_data text, _period_dt date) 
 		    quantity_not_in_orders,
 		    in_way_to_client,
 		    in_way_from_client,
-		    days_on_site
+		    days_on_site,
+		    sats_id
 		  )
 		SELECT _period_dt                    stock_dt,
 		       b.barcode_id,
@@ -187,7 +251,8 @@ CREATE OR REPLACE FUNCTION warehouse.wb_stock_load(_data text, _period_dt date) 
 		       SUM (dt.quantity_not_in_orders) quantity_not_in_orders,
 		       SUM (dt.in_way_to_client)     in_way_to_client,
 		       SUM (dt.in_way_from_client) in_way_from_client,
-		       MAX (dt.days_on_site)         days_on_site
+		       MAX (dt.days_on_site)         days_on_site,
+		       MAX(s.sats_id) sats_id
 		FROM   temp_tab dt
 		       INNER JOIN products.barcodes AS b
 		            ON  b.barcode = dt.barcode
@@ -195,6 +260,12 @@ CREATE OR REPLACE FUNCTION warehouse.wb_stock_load(_data text, _period_dt date) 
 		            ON  o.office_name = dt.office_name
 		       INNER JOIN refbook.supplier_contract sc
 		            ON  sc.suppliercontract_code = dt.suppliercontract_code
+		       INNER JOIN products.supplier_article AS sa
+		       		ON sa.sa_name = dt.sa_name
+		       INNER JOIN products.tech_size AS ts
+		       		ON ts.ts_name = dt.ts_name
+		       INNER JOIN products.sats AS s
+		       		ON s.sa_id = sa.sa_id AND s.ts_id = ts.ts_id
 		WHERE  NOT EXISTS (
 		       	SELECT 1
 		       	FROM   warehouse.wb_stock AS ws

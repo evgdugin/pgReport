@@ -43,10 +43,10 @@ CREATE OR REPLACE FUNCTION sale.report_for_days_get(_date date, _sa_name charact
 			               	       SUM (drd.total_price) sale_amount,
 			               	       SUM (CASE WHEN drd.quantity < 0 THEN -drd.quantity ELSE 0 END) return_qty
 			               	FROM   sale.day_report_detail AS drd
-			               	       INNER JOIN products.barcodes AS b
-			               	            ON  b.barcode_id = drd.barcode_id
-			               	WHERE  b.sa_id = _sa_id
-			               	       AND (_ts_id IS NULL OR b.ts_id = _ts_id)
+			               	       INNER JOIN products.sats AS st
+			               	            ON  st.sats_id = drd.sats_id
+			               	WHERE  st.sa_id = _sa_id
+			               	       AND (_ts_id IS NULL OR st.ts_id = _ts_id)
 			               	       AND drd.sale_dt >= _date
 			               	GROUP BY
 			               	       drd.sale_dt
@@ -56,11 +56,11 @@ CREATE OR REPLACE FUNCTION sale.report_for_days_get(_date date, _sa_name charact
 			               	SELECT ws.stock_dt,
 			               	       SUM (ws.quantity) qty_for_sale
 			               	FROM   warehouse.wb_stock AS ws
-			               	       INNER JOIN products.barcodes AS b
-			               	            ON  b.barcode_id = ws.barcode_id
+			               	       INNER JOIN products.sats AS st
+			               	            ON  st.sats_id = ws.sats_id
 			               	WHERE  ws.stock_dt >= _date
-			               	       AND b.sa_id = _sa_id
-			               	       AND (_ts_id IS NULL OR b.ts_id = _ts_id)
+			               	       AND st.sa_id = _sa_id
+			               	       AND (_ts_id IS NULL OR st.ts_id = _ts_id)
 			               	GROUP BY
 			               	       ws.stock_dt
 			               ) wbs
@@ -69,11 +69,11 @@ CREATE OR REPLACE FUNCTION sale.report_for_days_get(_date date, _sa_name charact
 			               	SELECT ord.order_dt,
 			               	       SUM (ord.quantity) order_qty
 			               	FROM   sale.order_report_detail AS ord
-			               	       INNER JOIN products.barcodes AS b
-			               	            ON  b.barcode_id = ord.barcode_id
+			               	       INNER JOIN products.sats AS st
+			               	            ON  st.sats_id = ord.sats_id
 			               	WHERE  ord.order_dt >= _date
-			               	       AND b.sa_id = _sa_id
-			               	       AND (_ts_id IS NULL OR b.ts_id = _ts_id)
+			               	       AND st.sa_id = _sa_id
+			               	       AND (_ts_id IS NULL OR st.ts_id = _ts_id)
 			               	GROUP BY
 			               	       ord.order_dt
 			               )wbo

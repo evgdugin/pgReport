@@ -20,7 +20,8 @@ CREATE TABLE sale.day_report_detail (
 	forpay numeric(9,2),
 	finished_price numeric(9,2),
 	price_with_disc numeric(9,2),
-	is_storno bit(1) NOT NULL
+	is_storno bit(1) NOT NULL,
+	sats_id integer
 );
 
 ALTER TABLE sale.day_report_detail OWNER TO postgres;
@@ -30,6 +31,10 @@ GRANT ALL ON TABLE sale.day_report_detail TO user1c;
 --------------------------------------------------------------------------------
 
 CREATE INDEX ix_day_report_detail_stock_dt_barcode_id ON sale.day_report_detail USING btree (sale_dt, barcode_id) INCLUDE (quantity, finished_price);
+
+--------------------------------------------------------------------------------
+
+CREATE INDEX ix_day_report_detail_stock_dt_sats_id ON sale.day_report_detail USING btree (sale_dt, sats_id) INCLUDE (quantity, finished_price);
 
 --------------------------------------------------------------------------------
 
@@ -60,3 +65,8 @@ ALTER TABLE sale.day_report_detail
 
 ALTER TABLE sale.day_report_detail
 	ADD CONSTRAINT pk_day_report_detail PRIMARY KEY (sale_dt, od_id, sale_type, sale_id);
+
+--------------------------------------------------------------------------------
+
+ALTER TABLE sale.day_report_detail
+	ADD CONSTRAINT fk_day_report_detail_sats_id FOREIGN KEY (sats_id) REFERENCES products.sats(sats_id);

@@ -4,29 +4,29 @@ CREATE OR REPLACE FUNCTION sale.day_report_get() RETURNS TABLE(subject_name char
 	SELECT sj.subject_name,
 	       b.brand_name,
 	       sc.art_name,
-	       bc.nm_id,
+	       sa.nm_id,
 	       sa.sa_name,
 	       ts.ts_name,
 	       wbs.days_on_site,
 	       sc.whprice,
-	       wbs4m.sale_qty                   sale_qty_quarter,
-	       wbs4m.sale_amount                sale_amount_quarter,
+	       wbs4m.sale_qty                  sale_qty_quarter,
+	       wbs4m.sale_amount               sale_amount_quarter,
 	       CASE 
 	       	WHEN wbs4m.sale_qty = 0 OR wbs4m.sale_amount = 0 OR wbs4m.sale_qty IS NULL THEN 0
 	       	ELSE ((wbs4m.sale_amount / wbs4m.sale_qty) - sc.whprice) / (wbs4m.sale_amount / wbs4m.sale_qty) * 100
-	       END                              quarter_margin,
-	       wbsm.sale_qty                    sale_qty_moth,
-	       wbsm.sale_amount                 sale_amount_month,
-	       wbsw.sale_qty                    sale_qty_week,
-	       wbsw.sale_amount                 sale_amount_week,
+	       END                             quarter_margin,
+	       wbsm.sale_qty                   sale_qty_moth,
+	       wbsm.sale_amount                sale_amount_month,
+	       wbsw.sale_qty                   sale_qty_week,
+	       wbsw.sale_amount                sale_amount_week,
 	       wbs.wb_stock,
 	       wbs.wb_stock_quantity_full,
 	       wbs.wb_stock_quantity_not_in_orders,
 	       wbs.wb_stock_in_way_to_client,
 	       wbs.wb_stock_in_way_from_client,
-	       s.qty                            stock,
-	       wbow.order_qty                   order_qty_week,
-	       wbs4m.qty_return                 return_qty_quarter,
+	       s.qty                           stock,
+	       wbow.order_qty                  order_qty_week,
+	       wbs4m.qty_return                return_qty_quarter,
 	       CASE 
 	       	WHEN COALESCE (wbs4m.sale_qty, 0) + COALESCE (wbs4m.qty_return, 0) = 0 THEN 0
 	       	ELSE (
@@ -34,36 +34,46 @@ CREATE OR REPLACE FUNCTION sale.day_report_get() RETURNS TABLE(subject_name char
 	       	     		COALESCE (wbs4m.sale_qty, 0) + COALESCE (wbs4m.qty_return, 0)
 	       	     	)
 	       	     )
-	       END                              return_percenr_quarter
+	       END                             return_percenr_quarter
 	FROM   (
-	       	SELECT drd.barcode_id,
+	       	SELECT drd.sats_id,
 	       	       SUM (drd.quantity) sale_qty,
 	       	       SUM (drd.finished_price) sale_amount,
 	       	       SUM (CASE WHEN drd.quantity < 0 THEN -drd.quantity ELSE 0 END) qty_return
 	       	FROM   sale.day_report_detail AS drd
 	       	WHERE  drd.sale_dt > now()::DATE - INTERVAL'120 day'
 	       	GROUP BY
-	       	       drd.barcode_id
+	       	       drd.sats_id
 	       ) wbs4m
-	       INNER JOIN products.barcodes  AS bc
-	            ON  bc.barcode_id = wbs4m.barcode_id
+	       INNER JOIN products.sats     AS st
+	            ON  st.sats_id = wbs4m.sats_id
 	       INNER JOIN products.supplier_article sa
-	            ON  sa.sa_id = bc.sa_id
-	       LEFT JOIN products.barcodes_info AS bi
-	            ON  bi.barcode_id = wbs4m.barcode_id
-	       LEFT JOIN products.subjects   AS sj
-	            ON  sj.subject_id = bi.subject_id
-	       LEFT JOIN products.brands     AS b
-	            ON  b.brand_id = bi.brand_id
+	            ON  sa.sa_id = st.sa_id
 	       INNER JOIN products.tech_size ts
-	            ON  ts.ts_id = bc.ts_id
-	       LEFT JOIN products.sa_cost    AS sc
+	            ON  ts.ts_id = st.ts_id
+	       LEFT JOIN products.supplier_article_info sai
+	            ON  sai.sa_id = sa.sa_id
+	       LEFT JOIN products.brands    AS b
+	            ON  b.brand_id = sai.brand_id
+	       LEFT JOIN products.subjects  AS sj
+	            ON  sj.subject_id = sai.subject_id
+	       LEFT JOIN products.sa_cost   AS sc
 	            ON  sc.sa_id = sa.sa_id
-	       LEFT JOIN warehouse.stock s
-	            ON  wbs4m.barcode_id = s.barcode_id
+	       LEFT JOIN (
+	            	SELECT ns.sats_id,
+	            	       ns.pants_id,
+	            	       MAX (ns.whprice) whprice,
+	            	       MAX (ns.price) price,
+	            	       SUM (ns.qty) qty
+	            	FROM   warehouse.stock ns
+	            	GROUP BY
+	            	       ns.sats_id,
+	            	       ns.pants_id
+	            ) s
+	            ON  wbs4m.sats_id = s.sats_id
 	       LEFT JOIN (
 	            	SELECT ws.stock_dt,
-	            	       ws.barcode_id,
+	            	       ws.sats_id,
 	            	       SUM (ws.quantity) wb_stock,
 	            	       SUM (ws.quantity_full) wb_stock_quantity_full,
 	            	       SUM (ws.quantity_not_in_orders) wb_stock_quantity_not_in_orders,
@@ -74,48 +84,48 @@ CREATE OR REPLACE FUNCTION sale.day_report_get() RETURNS TABLE(subject_name char
 	            	WHERE  ws.stock_dt = now()::DATE
 	            	GROUP BY
 	            	       ws.stock_dt,
-	            	       ws.barcode_id
+	            	       ws.sats_id
 	            ) wbs
-	            ON  wbs4m.barcode_id = wbs.barcode_id
+	            ON  wbs4m.sats_id = wbs.sats_id
 	       LEFT JOIN (
-	            	SELECT drd.barcode_id,
+	            	SELECT drd.sats_id,
 	            	       SUM (drd.quantity) sale_qty,
 	            	       SUM (drd.finished_price) sale_amount
 	            	FROM   sale.day_report_detail AS drd
 	            	WHERE  drd.sale_dt > now()::DATE - INTERVAL'14 day'
 	            	GROUP BY
-	            	       drd.barcode_id
+	            	       drd.sats_id
 	            ) wbsw
-	            ON  wbsw.barcode_id = wbs4m.barcode_id
+	            ON  wbsw.sats_id = wbs4m.sats_id
 	       LEFT JOIN (
-	            	SELECT drd2.barcode_id,
+	            	SELECT drd2.sats_id,
 	            	       SUM (drd2.quantity) sale_qty,
 	            	       SUM (drd2.finished_price) sale_amount
 	            	FROM   sale.day_report_detail AS drd2
 	            	WHERE  drd2.sale_dt > now()::DATE - INTERVAL'30 day'
 	            	GROUP BY
-	            	       drd2.barcode_id
+	            	       drd2.sats_id
 	            ) wbsm
-	            ON  wbsm.barcode_id = wbs4m.barcode_id
+	            ON  wbsm.sats_id = wbs4m.sats_id
 	       LEFT JOIN (
-	            	SELECT ws.barcode_id,
+	            	SELECT ws.sats_id,
 	            	       MAX (ws.in_way_to_client) in_way_to_client,
 	            	       MAX (ws.in_way_from_client) in_way_from_client
 	            	FROM   warehouse.wb_stock AS ws
 	            	WHERE  ws.stock_dt >= now()::DATE - INTERVAL'7 day'
 	            	GROUP BY
-	            	       ws.barcode_id
+	            	       ws.sats_id
 	            ) wbw
-	            ON  wbw.barcode_id = wbs4m.barcode_id
+	            ON  wbw.sats_id = wbs4m.sats_id
 	       LEFT JOIN (
-	            	SELECT ord.barcode_id,
+	            	SELECT ord.sats_id,
 	            	       SUM (ord.quantity) order_qty
 	            	FROM   sale.order_report_detail AS ord
 	            	WHERE  ord.order_dt >= now()::DATE - INTERVAL'7 day'
 	            	GROUP BY
-	            	       ord.barcode_id
+	            	       ord.sats_id
 	            ) wbow
-	            ON  wbow.barcode_id = wbs4m.barcode_id
+	            ON  wbow.sats_id = wbs4m.sats_id
 	ORDER BY
 	       sa.sa_name,
 	       ts.ts_name;

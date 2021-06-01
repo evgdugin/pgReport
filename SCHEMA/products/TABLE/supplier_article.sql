@@ -1,6 +1,7 @@
 CREATE TABLE products.supplier_article (
 	sa_id integer DEFAULT nextval('products.supplier_article_sa_id_seq'::regclass) NOT NULL,
-	sa_name character varying(36) NOT NULL
+	sa_name character varying(36) NOT NULL,
+	nm_id integer
 );
 
 ALTER TABLE products.supplier_article OWNER TO postgres;

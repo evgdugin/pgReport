@@ -10,7 +10,8 @@ CREATE TABLE warehouse.wb_stock (
 	quantity_not_in_orders smallint NOT NULL,
 	in_way_to_client smallint NOT NULL,
 	in_way_from_client smallint NOT NULL,
-	days_on_site smallint NOT NULL
+	days_on_site smallint NOT NULL,
+	sats_id integer
 );
 
 ALTER TABLE warehouse.wb_stock OWNER TO postgres;
@@ -19,11 +20,15 @@ GRANT ALL ON TABLE warehouse.wb_stock TO user1c;
 
 --------------------------------------------------------------------------------
 
-CREATE UNIQUE INDEX uq_wb_stock_stock_dt ON warehouse.wb_stock USING btree (stock_dt, barcode_id, office_id, suppliercontract_code_id) INCLUDE (quantity, days_on_site, in_way_to_client, in_way_from_client);
+CREATE INDEX ix_wb_stock_stock_dt_stock_dt_sa_id_ts_id ON warehouse.wb_stock USING btree (stock_dt, barcode_id) INCLUDE (quantity, days_on_site, in_way_to_client, in_way_from_client, quantity_full, quantity_not_in_orders);
 
 --------------------------------------------------------------------------------
 
-CREATE INDEX ix_wb_stock_stock_dt_stock_dt_sa_id_ts_id ON warehouse.wb_stock USING btree (stock_dt, barcode_id) INCLUDE (quantity, days_on_site, in_way_to_client, in_way_from_client, quantity_full, quantity_not_in_orders);
+CREATE INDEX ix_wb_stock_stock_dt_stock_dt_sats_id ON warehouse.wb_stock USING btree (stock_dt, sats_id) INCLUDE (quantity, days_on_site, in_way_to_client, in_way_from_client, quantity_full, quantity_not_in_orders);
+
+--------------------------------------------------------------------------------
+
+CREATE UNIQUE INDEX uq_wb_stock_stock_dt_sats_id_barcode_id_office_id_suppliercontr ON warehouse.wb_stock USING btree (stock_dt, sats_id, barcode_id, office_id, suppliercontract_code_id) INCLUDE (quantity, days_on_site, in_way_to_client, in_way_from_client);
 
 --------------------------------------------------------------------------------
 
@@ -44,3 +49,8 @@ ALTER TABLE warehouse.wb_stock
 
 ALTER TABLE warehouse.wb_stock
 	ADD CONSTRAINT pk_wb_stock PRIMARY KEY (stock_dt, barcode_id, office_id, suppliercontract_code_id);
+
+--------------------------------------------------------------------------------
+
+ALTER TABLE warehouse.wb_stock
+	ADD CONSTRAINT fk_wb_stosk_sats_id FOREIGN KEY (sats_id) REFERENCES products.sats(sats_id);

@@ -11,7 +11,8 @@ CREATE TABLE sale.order_report_detail (
 	okrug_id smallint NOT NULL,
 	gi_id integer,
 	is_cancel bit(1) NOT NULL,
-	cancel_dt date
+	cancel_dt date,
+	sats_id integer
 );
 
 ALTER TABLE sale.order_report_detail OWNER TO postgres;
@@ -21,6 +22,10 @@ GRANT ALL ON TABLE sale.order_report_detail TO user1c;
 --------------------------------------------------------------------------------
 
 CREATE INDEX ix_order_report_detail_order_dt_barcode_id ON sale.order_report_detail USING btree (order_dt, barcode_id) INCLUDE (quantity, total_price, is_cancel);
+
+--------------------------------------------------------------------------------
+
+CREATE INDEX ix_order_report_detail_order_dt_sats_id ON sale.order_report_detail USING btree (order_dt, sats_id) INCLUDE (quantity, total_price, is_cancel);
 
 --------------------------------------------------------------------------------
 
@@ -41,3 +46,8 @@ ALTER TABLE sale.order_report_detail
 
 ALTER TABLE sale.order_report_detail
 	ADD CONSTRAINT pk_order_report_detail PRIMARY KEY (order_dt, od_id, order_num);
+
+--------------------------------------------------------------------------------
+
+ALTER TABLE sale.order_report_detail
+	ADD CONSTRAINT fk_order_report_detail_sats_id FOREIGN KEY (sats_id) REFERENCES products.sats(sats_id);
