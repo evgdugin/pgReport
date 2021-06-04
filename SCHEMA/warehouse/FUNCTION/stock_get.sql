@@ -18,7 +18,7 @@ CREATE OR REPLACE FUNCTION warehouse.stock_get() RETURNS TABLE(pants_id integer,
 	       wbs4m.sale_qty                   sale_qty_quarter,
 	       wbs4m.sale_amount                sale_amount_quarter,
 	       CASE 
-	       	WHEN wbs4m.sale_qty = 0 OR wbs4m.sale_qty IS NULL THEN 0
+	       	WHEN COALESCE(wbs4m.sale_qty, 0) = 0 OR COALESCE(wbs4m.sale_amount, 0) = 0 THEN 0
 	       	ELSE ((wbs4m.sale_amount / wbs4m.sale_qty) - s.whprice) / (wbs4m.sale_amount / wbs4m.sale_qty) * 100
 	       END                              quarter_margin,
 	       wbw.in_way_to_client,
