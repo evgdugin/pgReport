@@ -11,7 +11,10 @@ CREATE OR REPLACE FUNCTION warehouse.wb_goods_income_load(_data text) RETURNS vo
 		       COALESCE (d.office_name, '') office_name,
 		       d.nm_id,
 		       COALESCE (d.sa_name, '')     sa_name,
-		       COALESCE (d.ts_name, '')     ts_name,
+		       CASE 
+		       	WHEN d.ts_name = '40-48' OR d.ts_name = '50-54' OR d.ts_name = '40-50' THEN 'ONE SIZE'
+		       	ELSE COALESCE (d.ts_name, '')
+		       END                          ts_name,
 		       COALESCE (d.barcode, '')     barcode,
 		       d.quantity,
 		       d.price,
@@ -24,19 +27,19 @@ CREATE OR REPLACE FUNCTION warehouse.wb_goods_income_load(_data text) RETURNS vo
 		UPDATE
 			products.supplier_article sa
 		SET
-			nm_id          = v.nm_id			
+			nm_id = v.nm_id 
 			FROM (
 				SELECT dt.sa_name,
-				       MAX (dt.nm_id)        nm_id
-				FROM   temp_tab dt
+				       MAX (dt.nm_id)     nm_id
+				FROM   temp_tab           dt
 				GROUP BY
-		       			dt.sa_name
+				       dt.sa_name
 			) v
 		WHERE
 			sa.sa_name = v.sa_name
-			AND COALESCE(sa.nm_id, 0) = 0
-			AND COALESCE(v.nm_id, 0) != 0;
-
+			AND COALESCE (sa.nm_id, 0) = 0
+			AND COALESCE (v.nm_id, 0) != 0;
+		
 		INSERT INTO products.supplier_article
 		  (
 		    sa_name,
@@ -68,13 +71,13 @@ CREATE OR REPLACE FUNCTION warehouse.wb_goods_income_load(_data text) RETURNS vo
 		UPDATE
 			products.barcodes b
 		SET
-			nm_id          = v.nm_id			
+			nm_id = v.nm_id 
 			FROM (
 				SELECT dt.barcode,
-				       MAX (dt.nm_id)        nm_id
-				FROM   temp_tab dt
+				       MAX (dt.nm_id)     nm_id
+				FROM   temp_tab           dt
 				GROUP BY
-		       			dt.barcode
+				       dt.barcode
 			) v
 		WHERE
 			b.barcode = v.barcode
@@ -97,14 +100,14 @@ CREATE OR REPLACE FUNCTION warehouse.wb_goods_income_load(_data text) RETURNS vo
 		            ON  sa.sa_name = dt.sa_name
 		       INNER JOIN products.tech_size AS ts
 		            ON  ts.ts_name = dt.ts_name
-		       WHERE NOT EXISTS (
+		WHERE  NOT EXISTS (
 		       	SELECT 1
 		       	FROM   products.barcodes dc
 		       	WHERE  dc.barcode = dt.barcode
 		       )
 		GROUP BY
 		       dt.barcode;
-		       
+		
 		INSERT INTO products.sats
 		  (
 		    sa_id,
@@ -120,7 +123,8 @@ CREATE OR REPLACE FUNCTION warehouse.wb_goods_income_load(_data text) RETURNS vo
 		WHERE  NOT EXISTS (
 		       	SELECT 1
 		       	FROM   products.sats dc
-		       	WHERE  dc.sa_id = sa.sa_id AND dc.ts_id = ts.ts_id
+		       	WHERE  dc.sa_id = sa.sa_id
+		       	       AND dc.ts_id = ts.ts_id
 		       )
 		GROUP BY
 		       sa.sa_id,
@@ -196,30 +200,31 @@ CREATE OR REPLACE FUNCTION warehouse.wb_goods_income_load(_data text) RETURNS vo
 		       	                 END ,
 		       	office_id = EXCLUDED.office_id;
 		
-		WITH cte AS(SELECT dt.gi_id,
-				       sa.sa_id,
-				       ts.ts_id,
-				       bc.barcode_id,
-				       dt.nm_id,
-				       dt.quantity,
-				       dt.price
-				FROM   temp_tab AS dt
-				       INNER JOIN products.barcodes bc
-				            ON  bc.barcode = dt.barcode
-				       INNER JOIN products.supplier_article sa
-				            ON  sa.sa_name = dt.sa_name
-				       INNER JOIN products.tech_size ts
-				            ON  ts.ts_name = dt.ts_name
-			)		
+		WITH cte AS(
+			SELECT dt.gi_id,
+			       sa.sa_id,
+			       ts.ts_id,
+			       bc.barcode_id,
+			       dt.nm_id,
+			       dt.quantity,
+			       dt.price
+			FROM   temp_tab AS dt
+			       INNER JOIN products.barcodes bc
+			            ON  bc.barcode = dt.barcode
+			       INNER JOIN products.supplier_article sa
+			            ON  sa.sa_name = dt.sa_name
+			       INNER JOIN products.tech_size ts
+			            ON  ts.ts_name = dt.ts_name
+		) 
 		UPDATE warehouse.wb_goods_income_detail gid
-		SET	quantity     = v.quantity,
-			price        = CASE 
-			        	WHEN COALESCE (v.price, 0) = 0 THEN gid.price
-			        	ELSE v.price
-			        END 
-			FROM  cte AS v
-			WHERE  gid.gi_id = v.gi_id AND gid.barcode_id = v.barcode_id;
-
+		SET quantity = v.quantity,
+		price = 
+		CASE 
+			WHEN COALESCE (v.price, 0) = 0 THEN gid.price
+			ELSE v.price
+		END FROM cte AS v
+		    WHERE gid.gi_id = v.gi_id AND gid.barcode_id = v.barcode_id;
+		
 		
 		INSERT INTO warehouse.wb_goods_income_detail AS gid
 		  (
@@ -231,25 +236,27 @@ CREATE OR REPLACE FUNCTION warehouse.wb_goods_income_load(_data text) RETURNS vo
 		  )
 		SELECT dt.gi_id,
 		       bc.barcode_id,
-		       SUM(dt.quantity) quantity,
-		       MAX(dt.price) price,
-		       MAX(s.sats_id)
-		FROM   temp_tab AS dt
+		       SUM (dt.quantity)            quantity,
+		       MAX (dt.price)               price,
+		       MAX (s.sats_id)
+		FROM   temp_tab                  AS dt
 		       INNER JOIN products.barcodes bc
 		            ON  bc.barcode = dt.barcode
-				INNER JOIN products.supplier_article AS sa
-		       		ON sa.sa_name = dt.sa_name
+		       INNER JOIN products.supplier_article AS sa
+		            ON  sa.sa_name = dt.sa_name
 		       INNER JOIN products.tech_size AS ts
-		       		ON ts.ts_name = dt.ts_name
-		       INNER JOIN products.sats AS s
-		       		ON s.sa_id = sa.sa_id AND s.ts_id = ts.ts_id
+		            ON  ts.ts_name = dt.ts_name
+		       INNER JOIN products.sats  AS s
+		            ON  s.sa_id = sa.sa_id
+		            AND s.ts_id = ts.ts_id
 		WHERE  NOT EXISTS (
 		       	SELECT 1
 		       	FROM   warehouse.wb_goods_income_detail AS wgid
-		       	WHERE  wgid.gi_id = dt.gi_id		       	      
+		       	WHERE  wgid.gi_id = dt.gi_id
 		       	       AND wgid.barcode_id = bc.barcode_id
-		)
-		GROUP BY dt.gi_id,
+		       )
+		GROUP BY
+		       dt.gi_id,
 		       bc.barcode_id;
 	END;
 $$;

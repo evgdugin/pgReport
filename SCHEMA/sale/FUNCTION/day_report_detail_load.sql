@@ -13,7 +13,10 @@ CREATE OR REPLACE FUNCTION sale.day_report_detail_load(_data text, _period_dt da
 		       d.nm_id,
 		       COALESCE (d.brand_name, '') brand_name,
 		       COALESCE (d.sa_name, '')     sa_name,
-		       COALESCE (d.ts_name, '')     ts_name,
+		       CASE 
+		       	WHEN d.ts_name = '40-48' OR d.ts_name = '50-54' OR d.ts_name = '40-50' THEN 'ONE SIZE'
+		       	ELSE COALESCE (d.ts_name, '')
+		       END                          ts_name,
 		       COALESCE (d.barcode, '')     barcode,
 		       d.quantity,
 		       d.total_price,

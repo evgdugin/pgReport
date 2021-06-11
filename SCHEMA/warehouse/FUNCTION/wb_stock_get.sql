@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION warehouse.wb_stock_get() RETURNS TABLE(subject_name character varying, brand_name character varying, art_name character varying, nm_id integer, sa_name character varying, ts_name character varying, days_on_site smallint, whprice numeric, wb_stock bigint, wb_stock_quantity_full bigint, wb_stock_quantity_not_in_orders bigint, wb_stock_in_way_to_client bigint, wb_stock_in_way_from_client bigint, stock smallint, sale_qty_week bigint, sale_amount_week numeric, sale_qty_moth bigint, sale_amount_month numeric, sale_qty_quarter bigint, sale_amount_quarter numeric, quarter_margin numeric, order_qty_week bigint)
+CREATE OR REPLACE FUNCTION warehouse.wb_stock_get() RETURNS TABLE(subject_name character varying, brand_name character varying, art_name character varying, nm_id integer, sa_name character varying, ts_name character varying, days_on_site smallint, whprice numeric, wb_stock bigint, wb_stock_quantity_full bigint, wb_stock_quantity_not_in_orders bigint, wb_stock_in_way_to_client bigint, wb_stock_in_way_from_client bigint, stock smallint, sale_qty_week bigint, sale_amount_week numeric, sale_qty_moth bigint, sale_amount_month numeric, sale_qty_quarter bigint, sale_amount_quarter numeric, quarter_margin numeric, order_qty_week bigint, pics_dt date)
     LANGUAGE sql
     AS $$
 	SELECT sj.subject_name,
@@ -23,9 +23,13 @@ CREATE OR REPLACE FUNCTION warehouse.wb_stock_get() RETURNS TABLE(subject_name c
 	       wbs4m.sale_amount               sale_amount_quarter,
 	       CASE 
 	       	WHEN wbs4m.sale_qty = 0 OR wbs4m.sale_amount = 0 OR wbs4m.sale_qty IS NULL THEN 0
-	       	ELSE ((wbs4m.sale_amount / wbs4m.sale_qty) - s.whprice) / (wbs4m.sale_amount / wbs4m.sale_qty) * 100
+	       	ELSE round(
+	       	     	 ((wbs4m.sale_amount / wbs4m.sale_qty) - s.whprice) / (wbs4m.sale_amount / wbs4m.sale_qty) * 100,
+	       	     	2
+	       	     )
 	       END                             quarter_margin,
-	       wbow.order_qty                  order_qty_week
+	       wbow.order_qty                  order_qty_week,
+	       sc.pics_dt
 	FROM   (
 	       	SELECT ws.stock_dt,
 	       	       ws.sats_id,

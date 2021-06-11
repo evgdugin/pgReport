@@ -3,7 +3,8 @@ CREATE TABLE products.sa_cost (
 	whprice numeric(9,2) NOT NULL,
 	price numeric(9,2) NOT NULL,
 	art_name character varying(100) NOT NULL,
-	dt date NOT NULL
+	dt date NOT NULL,
+	pics_dt date
 );
 
 ALTER TABLE products.sa_cost OWNER TO postgres;

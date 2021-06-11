@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION warehouse.stock_get() RETURNS TABLE(pants_id integer, sa_name character varying, ts_name character varying, brand_name character varying, art_name character varying, subject_name character varying, nm_id integer, whprice numeric, qty smallint, wb_stock bigint, sale_qty_week bigint, sale_amount_week numeric, sale_qty_moth bigint, sale_amount_month numeric, sale_qty_quarter bigint, sale_amount_quarter numeric, quarter_margin numeric, in_way_to_client smallint, in_way_from_client smallint, days_on_site smallint, order_qty_week bigint)
+CREATE OR REPLACE FUNCTION warehouse.stock_get() RETURNS TABLE(pants_id integer, sa_name character varying, ts_name character varying, brand_name character varying, art_name character varying, subject_name character varying, nm_id integer, whprice numeric, qty smallint, wb_stock bigint, sale_qty_week bigint, sale_amount_week numeric, sale_qty_moth bigint, sale_amount_month numeric, sale_qty_quarter bigint, sale_amount_quarter numeric, quarter_margin numeric, in_way_to_client smallint, in_way_from_client smallint, days_on_site smallint, order_qty_week bigint, pics_dt date)
     LANGUAGE sql
     AS $$
 	SELECT s.pants_id,
@@ -11,20 +11,24 @@ CREATE OR REPLACE FUNCTION warehouse.stock_get() RETURNS TABLE(pants_id integer,
 	       s.whprice,
 	       s.qty,
 	       wbs.wb_stock,
-	       wbsw.sale_qty                    sale_qty_week,
-	       wbsw.sale_amount                 sale_amount_week,
-	       wbsm.sale_qty                    sale_qty_moth,
-	       wbsm.sale_amount                 sale_amount_month,
-	       wbs4m.sale_qty                   sale_qty_quarter,
-	       wbs4m.sale_amount                sale_amount_quarter,
+	       wbsw.sale_qty                   sale_qty_week,
+	       wbsw.sale_amount                sale_amount_week,
+	       wbsm.sale_qty                   sale_qty_moth,
+	       wbsm.sale_amount                sale_amount_month,
+	       wbs4m.sale_qty                  sale_qty_quarter,
+	       wbs4m.sale_amount               sale_amount_quarter,
 	       CASE 
-	       	WHEN COALESCE(wbs4m.sale_qty, 0) = 0 OR COALESCE(wbs4m.sale_amount, 0) = 0 THEN 0
-	       	ELSE ((wbs4m.sale_amount / wbs4m.sale_qty) - s.whprice) / (wbs4m.sale_amount / wbs4m.sale_qty) * 100
-	       END                              quarter_margin,
+	       	WHEN COALESCE (wbs4m.sale_qty, 0) = 0 OR COALESCE (wbs4m.sale_amount, 0) = 0 THEN 0
+	       	ELSE round(
+	       	     	 ((wbs4m.sale_amount / wbs4m.sale_qty) - s.whprice) / (wbs4m.sale_amount / wbs4m.sale_qty) * 100,
+	       	     	2
+	       	     )
+	       END                             quarter_margin,
 	       wbw.in_way_to_client,
 	       wbw.in_way_from_client,
 	       wbs.days_on_site,
-	       wbow.order_qty                   order_qty_week
+	       wbow.order_qty                  order_qty_week,
+	       sc.pics_dt
 	FROM   (
 	       	SELECT ns.sats_id,
 	       	       ns.pants_id,
@@ -36,19 +40,19 @@ CREATE OR REPLACE FUNCTION warehouse.stock_get() RETURNS TABLE(pants_id integer,
 	       	       ns.sats_id,
 	       	       ns.pants_id
 	       ) s
-	       INNER JOIN products.sats  AS st
-	            ON st.sats_id = s.sats_id
+	       INNER JOIN products.sats     AS st
+	            ON  st.sats_id = s.sats_id
 	       INNER JOIN products.supplier_article sa
 	            ON  sa.sa_id = st.sa_id
 	       INNER JOIN products.tech_size ts
 	            ON  ts.ts_id = st.ts_id
 	       LEFT JOIN products.supplier_article_info sai
-	            ON sai.sa_id = sa.sa_id
-	       LEFT JOIN products.brands     AS b
+	            ON  sai.sa_id = sa.sa_id
+	       LEFT JOIN products.brands    AS b
 	            ON  b.brand_id = sai.brand_id
-	       LEFT JOIN products.subjects   AS sj
+	       LEFT JOIN products.subjects  AS sj
 	            ON  sj.subject_id = sai.subject_id
-	       LEFT JOIN products.sa_cost    AS sc
+	       LEFT JOIN products.sa_cost   AS sc
 	            ON  sc.sa_id = sa.sa_id
 	       LEFT JOIN (
 	            	SELECT ws.sats_id,

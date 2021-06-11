@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION sale.day_report_get() RETURNS TABLE(subject_name character varying, brand_name character varying, art_name character varying, nm_id integer, sa_name character varying, ts_name character varying, days_on_site smallint, whprice numeric, sale_qty_quarter bigint, sale_amount_quarter numeric, quarter_margin numeric, sale_qty_moth bigint, sale_amount_month numeric, sale_qty_week bigint, sale_amount_week numeric, wb_stock bigint, wb_stock_quantity_full bigint, wb_stock_quantity_not_in_orders bigint, wb_stock_in_way_to_client bigint, wb_stock_in_way_from_client bigint, stock smallint, order_qty_week bigint, return_qty_quarter bigint, return_percenr_quarter bigint)
+CREATE OR REPLACE FUNCTION sale.day_report_get() RETURNS TABLE(subject_name character varying, brand_name character varying, art_name character varying, nm_id integer, sa_name character varying, ts_name character varying, days_on_site smallint, whprice numeric, sale_qty_quarter bigint, sale_amount_quarter numeric, quarter_margin numeric, sale_qty_moth bigint, sale_amount_month numeric, sale_qty_week bigint, sale_amount_week numeric, wb_stock bigint, wb_stock_quantity_full bigint, wb_stock_quantity_not_in_orders bigint, wb_stock_in_way_to_client bigint, wb_stock_in_way_from_client bigint, stock smallint, order_qty_week bigint, return_qty_quarter bigint, return_percenr_quarter bigint, pics_dt date)
     LANGUAGE sql
     AS $$
 	SELECT sj.subject_name,
@@ -13,7 +13,10 @@ CREATE OR REPLACE FUNCTION sale.day_report_get() RETURNS TABLE(subject_name char
 	       wbs4m.sale_amount               sale_amount_quarter,
 	       CASE 
 	       	WHEN wbs4m.sale_qty = 0 OR wbs4m.sale_amount = 0 OR wbs4m.sale_qty IS NULL THEN 0
-	       	ELSE ((wbs4m.sale_amount / wbs4m.sale_qty) - sc.whprice) / (wbs4m.sale_amount / wbs4m.sale_qty) * 100
+	       	ELSE round(
+	       	     	 ((wbs4m.sale_amount / wbs4m.sale_qty) - sc.whprice) / (wbs4m.sale_amount / wbs4m.sale_qty) * 100,
+	       	     	2
+	       	     )
 	       END                             quarter_margin,
 	       wbsm.sale_qty                   sale_qty_moth,
 	       wbsm.sale_amount                sale_amount_month,
@@ -34,7 +37,8 @@ CREATE OR REPLACE FUNCTION sale.day_report_get() RETURNS TABLE(subject_name char
 	       	     		COALESCE (wbs4m.sale_qty, 0) + COALESCE (wbs4m.qty_return, 0)
 	       	     	)
 	       	     )
-	       END                             return_percenr_quarter
+	       END                             return_percenr_quarter,
+	       sc.pics_dt
 	FROM   (
 	       	SELECT drd.sats_id,
 	       	       SUM (drd.quantity) sale_qty,

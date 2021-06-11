@@ -7,14 +7,33 @@ CREATE OR REPLACE FUNCTION warehouse.stock_load(_data text, _period_dt date) RET
 		SELECT COALESCE (d.barcode, '')	barcode,
 		       d.pants_id,
 		       COALESCE (d.sa_name, '')     sa_name,
-		       COALESCE (d.ts_name, '')     ts_name,
+		       CASE 
+		       	WHEN d.ts_name = '40-48' OR d.ts_name = '50-54' OR d.ts_name = '40-50' THEN 'ONE SIZE'
+		       	ELSE COALESCE (d.ts_name, '')
+		       END                          ts_name,
 		       d.whprice,
 		       d.price,
 		       d.qty,
-		       COALESCE (d.nm_id, 0) nm_id,
+		       d.nm_id,
 		       COALESCE (d.subject_name, '') subject_name,
 		       COALESCE (d.brand_name, '') brand_name
 		FROM   json_populate_recordset (NULL::warehouse.stock_type, CAST (_data AS json))d;
+		
+		UPDATE
+			products.supplier_article sa
+		SET
+			nm_id = v.nm_id 
+			FROM (
+				SELECT dt.sa_name,
+				       MAX (dt.nm_id)     nm_id
+				FROM   temp_tab           dt
+				GROUP BY
+				       dt.sa_name
+			) v
+		WHERE
+			sa.sa_name = v.sa_name
+			AND COALESCE (sa.nm_id, 0) = 0
+			AND COALESCE (v.nm_id, 0) != 0;
 		
 		INSERT INTO products.supplier_article
 		  (
@@ -43,6 +62,22 @@ CREATE OR REPLACE FUNCTION warehouse.stock_load(_data text, _period_dt date) RET
 		       	FROM   products.tech_size dc
 		       	WHERE  dc.ts_name = dt.ts_name
 		       );
+		
+		UPDATE
+			products.barcodes b
+		SET
+			nm_id = v.nm_id 
+			FROM (
+				SELECT dt.barcode,
+				       MAX (dt.nm_id)     nm_id
+				FROM   temp_tab           dt
+				GROUP BY
+				       dt.barcode
+			) v
+		WHERE
+			b.barcode = v.barcode
+			AND COALESCE (b.nm_id, 0) = 0
+			AND COALESCE (v.nm_id, 0) != 0;
 		
 		INSERT INTO products.barcodes
 		  (

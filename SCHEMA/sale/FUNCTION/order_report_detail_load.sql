@@ -11,7 +11,10 @@ CREATE OR REPLACE FUNCTION sale.order_report_detail_load(_data text, _period_dt 
 		       d.nm_id,
 		       COALESCE (d.brand_name, '') brand_name,
 		       COALESCE (d.sa_name, '')     sa_name,
-		       COALESCE (d.ts_name, '')     ts_name,
+		       CASE 
+		       	WHEN d.ts_name = '40-48' OR d.ts_name = '50-54' OR d.ts_name = '40-50' THEN 'ONE SIZE'
+		       	ELSE COALESCE (d.ts_name, '')
+		       END                          ts_name,
 		       COALESCE (d.barcode, '')     barcode,
 		       d.quantity,
 		       d.total_price,
@@ -26,19 +29,19 @@ CREATE OR REPLACE FUNCTION sale.order_report_detail_load(_data text, _period_dt 
 		UPDATE
 			products.supplier_article sa
 		SET
-			nm_id          = v.nm_id			
+			nm_id = v.nm_id 
 			FROM (
 				SELECT dt.sa_name,
-				       MAX (dt.nm_id)        nm_id
-				FROM   temp_tab dt
+				       MAX (dt.nm_id)     nm_id
+				FROM   temp_tab           dt
 				GROUP BY
-		       			dt.sa_name
+				       dt.sa_name
 			) v
 		WHERE
 			sa.sa_name = v.sa_name
-			AND COALESCE(sa.nm_id, 0) = 0
-			AND COALESCE(v.nm_id, 0) != 0;
-
+			AND COALESCE (sa.nm_id, 0) = 0
+			AND COALESCE (v.nm_id, 0) != 0;
+		
 		INSERT INTO products.supplier_article
 		  (
 		    sa_name,
@@ -70,13 +73,13 @@ CREATE OR REPLACE FUNCTION sale.order_report_detail_load(_data text, _period_dt 
 		UPDATE
 			products.barcodes b
 		SET
-			nm_id          = v.nm_id			
+			nm_id = v.nm_id 
 			FROM (
 				SELECT dt.barcode,
-				       MAX (dt.nm_id)        nm_id
-				FROM   temp_tab dt
+				       MAX (dt.nm_id)     nm_id
+				FROM   temp_tab           dt
 				GROUP BY
-		       			dt.barcode
+				       dt.barcode
 			) v
 		WHERE
 			b.barcode = v.barcode
@@ -106,7 +109,7 @@ CREATE OR REPLACE FUNCTION sale.order_report_detail_load(_data text, _period_dt 
 		       )
 		GROUP BY
 		       dt.barcode;
-		       
+		
 		INSERT INTO products.sats
 		  (
 		    sa_id,
@@ -122,7 +125,8 @@ CREATE OR REPLACE FUNCTION sale.order_report_detail_load(_data text, _period_dt 
 		WHERE  NOT EXISTS (
 		       	SELECT 1
 		       	FROM   products.sats dc
-		       	WHERE  dc.sa_id = sa.sa_id AND dc.ts_id = ts.ts_id
+		       	WHERE  dc.sa_id = sa.sa_id
+		       	       AND dc.ts_id = ts.ts_id
 		       )
 		GROUP BY
 		       sa.sa_id,
@@ -159,8 +163,8 @@ CREATE OR REPLACE FUNCTION sale.order_report_detail_load(_data text, _period_dt 
 		    subject_id
 		  )
 		SELECT b.barcode_id,
-		       MAX (br.brand_id)       brand_id,
-		       MAX (s.subject_id)      subject_id
+		       MAX (br.brand_id)      brand_id,
+		       MAX (s.subject_id)     subject_id
 		FROM   temp_tab dt
 		       INNER JOIN products.barcodes AS b
 		            ON  b.barcode = dt.barcode
@@ -175,7 +179,7 @@ CREATE OR REPLACE FUNCTION sale.order_report_detail_load(_data text, _period_dt 
 		       )
 		GROUP BY
 		       b.barcode_id; 
-		       
+		
 		INSERT INTO products.supplier_article_info
 		  (
 		    sa_id,
@@ -183,8 +187,8 @@ CREATE OR REPLACE FUNCTION sale.order_report_detail_load(_data text, _period_dt 
 		    subject_id
 		  )
 		SELECT sa.sa_id,
-		       MAX (br.brand_id)       brand_id,
-		       MAX (s.subject_id)      subject_id
+		       MAX (br.brand_id)      brand_id,
+		       MAX (s.subject_id)     subject_id
 		FROM   temp_tab dt
 		       INNER JOIN products.supplier_article AS sa
 		            ON  sa.sa_name = dt.sa_name
@@ -245,7 +249,7 @@ CREATE OR REPLACE FUNCTION sale.order_report_detail_load(_data text, _period_dt 
 		    cancel_dt,
 		    sats_id
 		  )
-		SELECT _period_dt order_dt,
+		SELECT _period_dt                    order_dt,
 		       dt.od_id,
 		       dt.order_num,
 		       dt.last_change_dt,
@@ -264,14 +268,15 @@ CREATE OR REPLACE FUNCTION sale.order_report_detail_load(_data text, _period_dt 
 		            ON  bc.barcode = dt.barcode
 		       INNER JOIN refbook.offices o
 		            ON  o.office_name = dt.office_name
-		       INNER JOIN refbook.okrugs AS okr
+		       INNER JOIN refbook.okrugs  AS okr
 		            ON  okr.okrug_name = dt.okrug_name
 		       INNER JOIN products.supplier_article AS sa
-		       		ON sa.sa_name = dt.sa_name
+		            ON  sa.sa_name = dt.sa_name
 		       INNER JOIN products.tech_size AS ts
-		       		ON ts.ts_name = dt.ts_name
-		       INNER JOIN products.sats AS s
-		       		ON s.sa_id = sa.sa_id AND s.ts_id = ts.ts_id;
+		            ON  ts.ts_name = dt.ts_name
+		       INNER JOIN products.sats   AS s
+		            ON  s.sa_id = sa.sa_id
+		            AND s.ts_id = ts.ts_id;
 	END;
 $$;
 
