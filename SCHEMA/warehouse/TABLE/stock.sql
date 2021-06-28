@@ -5,7 +5,7 @@ CREATE TABLE warehouse.stock (
 	price numeric(9,2),
 	qty smallint,
 	dt date,
-	sats_id integer
+	sats_id integer NOT NULL
 );
 
 ALTER TABLE warehouse.stock OWNER TO postgres;

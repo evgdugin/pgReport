@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION warehouse.stock_get() RETURNS TABLE(pants_id integer, sa_name character varying, ts_name character varying, brand_name character varying, art_name character varying, subject_name character varying, nm_id integer, whprice numeric, qty smallint, wb_stock bigint, sale_qty_week bigint, sale_amount_week numeric, sale_qty_moth bigint, sale_amount_month numeric, sale_qty_quarter bigint, sale_amount_quarter numeric, quarter_margin numeric, in_way_to_client smallint, in_way_from_client smallint, days_on_site smallint, order_qty_week bigint, pics_dt date)
+CREATE OR REPLACE FUNCTION warehouse.stock_get() RETURNS TABLE(pants_id integer, sa_name character varying, ts_name character varying, brand_name character varying, art_name character varying, subject_name character varying, nm_id integer, whprice numeric, qty smallint, wb_stock bigint, ozon_stock bigint, sale_qty_week bigint, sale_amount_week numeric, sale_qty_moth bigint, sale_amount_month numeric, sale_qty_quarter bigint, sale_amount_quarter numeric, quarter_margin numeric, in_way_to_client smallint, in_way_from_client smallint, days_on_site smallint, order_qty_week bigint, pics_dt date)
     LANGUAGE sql
     AS $$
 	SELECT s.pants_id,
@@ -11,6 +11,7 @@ CREATE OR REPLACE FUNCTION warehouse.stock_get() RETURNS TABLE(pants_id integer,
 	       s.whprice,
 	       s.qty,
 	       wbs.wb_stock,
+	       ozs.ozon_stock,
 	       wbsw.sale_qty                   sale_qty_week,
 	       wbsw.sale_amount                sale_amount_week,
 	       wbsm.sale_qty                   sale_qty_moth,
@@ -113,6 +114,15 @@ CREATE OR REPLACE FUNCTION warehouse.stock_get() RETURNS TABLE(pants_id integer,
 	            	       ord.sats_id
 	            ) wbow
 	            ON  wbow.sats_id = s.sats_id
+	       LEFT JOIN (
+	            	SELECT os.sats_id,
+	            	       SUM (os.present) ozon_stock
+	            	FROM   warehouse.ozon_stock AS os
+	            	WHERE  os.stock_dt = now()::DATE
+	            	GROUP BY
+	            	       os.sats_id
+	            ) ozs
+	            ON  ozs.sats_id = s.sats_id
 	ORDER BY
 	       sa.sa_name,
 	       ts.ts_name ;

@@ -12,7 +12,7 @@ CREATE TABLE sale.order_report_detail (
 	gi_id integer,
 	is_cancel bit(1) NOT NULL,
 	cancel_dt date,
-	sats_id integer
+	sats_id integer NOT NULL
 );
 
 ALTER TABLE sale.order_report_detail OWNER TO postgres;

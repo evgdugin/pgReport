@@ -11,7 +11,7 @@ CREATE TABLE warehouse.wb_stock (
 	in_way_to_client smallint NOT NULL,
 	in_way_from_client smallint NOT NULL,
 	days_on_site smallint NOT NULL,
-	sats_id integer
+	sats_id integer NOT NULL
 );
 
 ALTER TABLE warehouse.wb_stock OWNER TO postgres;

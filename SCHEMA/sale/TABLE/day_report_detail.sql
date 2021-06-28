@@ -21,7 +21,7 @@ CREATE TABLE sale.day_report_detail (
 	finished_price numeric(9,2),
 	price_with_disc numeric(9,2),
 	is_storno bit(1) NOT NULL,
-	sats_id integer
+	sats_id integer NOT NULL
 );
 
 ALTER TABLE sale.day_report_detail OWNER TO postgres;

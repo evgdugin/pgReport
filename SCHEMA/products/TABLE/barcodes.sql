@@ -1,7 +1,7 @@
 CREATE TABLE products.barcodes (
 	barcode_id integer DEFAULT nextval('products.barcodes_barcode_id_seq'::regclass) NOT NULL,
 	barcode character varying(30),
-	nm_id integer NOT NULL,
+	nm_id integer,
 	sa_id integer NOT NULL,
 	ts_id smallint NOT NULL
 );
