@@ -30,7 +30,7 @@ CREATE OR REPLACE FUNCTION warehouse.goods_income_get(_start_dt date, _finish_dt
 			            ON  ts.ts_id = b.ts_id
 			WHERE  wgi.gi_dt >= _start_dt
 			       AND wgi.gi_dt <= _finish_dt
-		);
+		); 
 	END;
 $$;
 
